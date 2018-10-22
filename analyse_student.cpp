@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <set>
 #include <map>
+#include <sstream>
 
 using namespace std;
 /* run this program using the console pauser or add your own getch, system("pause") or input loop */
@@ -131,17 +132,130 @@ void student::cout_serial_id()
 	cout << serial_id << endl;
 }
 
+class subject{
+	public:
+		float credit;
+		vector<string> courses;
+		
+	subject();
+};
+
+subject::subject()
+{
+	credit = 0.0;
+}
+
+class graduate_rule{
+	public:
+		subject compulsory;
+		vector<subject> elective;
+};
+
+void parse_single_rule_by_token(string &input, vector<string> &single_rule, const char token = ',')
+{
+	single_rule.clear();
+	istringstream iss(input);
+	string temp;
+	
+	while(getline(iss, temp, token)) {
+		single_rule.push_back(temp);
+	}
+	//cout << single_rule[0] << endl;
+}
+
+void parse_rule_by_single_rule(vector<string> &single_rule, graduate_rule &rule)
+{
+	if(single_rule.size() < 2)
+			return;
+			
+	if(single_rule[0] == "compulsory")
+	{
+		//cout << "compulsory" << endl;
+		rule.compulsory.credit += atof(single_rule[1].c_str());
+		for (vector<string>::iterator i = single_rule.begin() + 2; i != single_rule.end(); ++i)
+		{
+			rule.compulsory.courses.push_back(*i);
+		}
+	}
+	if(single_rule[0] == "elective")
+	{
+		//cout << "elective" << endl;
+		subject temp;
+		temp.credit = atof(single_rule[1].c_str());
+		for (vector<string>::iterator i = single_rule.begin() + 2; i != single_rule.end(); ++i)
+		{
+			temp.courses.push_back(*i);
+		}
+		rule.elective.push_back(temp);
+	}
+}
+
+void parse_rule(fstream &fs, graduate_rule &rule)
+{
+	string intemp;
+	
+	while(!fs.eof())
+	{
+		getline(fs, intemp, '\n');
+		
+		//cout << intemp;
+		
+		vector<string> outtemp;
+		parse_single_rule_by_token(intemp, outtemp, ',');
+		parse_rule_by_single_rule(outtemp, rule);
+	}
+}
+
 vector<student> database;
+map<string, graduate_rule> stu_course;
+
+void judge_learned_course(vector<student>::iterator &i)
+{
+	if (stu_course.find(i->student_id) != stu_course.end())
+	{
+		for(vector<string>::iterator is = stu_course[i->student_id].compulsory.courses.begin();
+		is != stu_course[i->student_id].compulsory.courses.end();)
+		{
+			if (*is == i->course)
+			{
+				is = stu_course[i->student_id].compulsory.courses.erase(is);
+				stu_course[i->student_id].compulsory.credit -= i->float_credit;
+				//stu_course[i->student_id].compulsory.courses.end();
+			} else
+				++is;
+		}
+		for(vector<subject>::iterator i_sub = stu_course[i->student_id].elective.begin();
+		i_sub != stu_course[i->student_id].elective.end(); ++i_sub)
+		{
+			for (vector<string>::iterator is = i_sub->courses.begin(); is != i_sub->courses.end();)
+			if (*is == i->course)
+			{
+				is = i_sub->courses.erase(is);
+				i_sub->credit -= i->float_credit;
+			} else
+				++is;
+		}
+	}
+}
 
 int main(int argc, char** argv) {
+	//setrlimit(10 * 1024 * 1024);
 	
 	fstream fs1;
 	fstream fs2;
 	fstream fs3;
+	fstream fs4;
+	fstream fs5;
 
-	fs1.open("C://temp//result_new.csv");
-	fs2.open("C://temp//analyse_result.csv");
-	fs3.open("C://temp//student_total_credit.csv");
+	fs1.open("C://temp//1101.csv");
+	fs2.open("C://temp//analyse_result_1101.csv");
+	fs3.open("C://temp//student_total_credit_1101.csv");
+	fs4.open("C://temp//1101_rule.csv");
+	fs5.open("C://temp//graduate_result.csv");
+	
+	graduate_rule rule;
+	parse_rule(fs4, rule);
+	//cout << rule.compulsory.credit << endl;
 	
 	vector<string> course_types;
 	course_types.push_back("Ñ§ºÅ");
@@ -172,6 +286,12 @@ int main(int argc, char** argv) {
 		{
 			credit_calculate temp_credit;
 			credit[temp_student.student_id] = temp_credit;
+		}
+		
+		if (stu_course.find(temp_student.student_id) == stu_course.end())
+		{
+			stu_course[temp_student.student_id] = rule;
+			//cout << stu_course.size() << endl;
 		}
 		
 		getline(fs1, temp_student.course, ',');
@@ -246,6 +366,7 @@ int main(int argc, char** argv) {
 	set<string> course_type2_count;
 	for (vector<student>::iterator i = database.begin(); i != database.end(); ++i)
 	{
+		judge_learned_course(i);
 		course_count.insert(i->course);
 		credit_type.insert(i->credit);
 		credit_set.insert(i->float_credit);
@@ -307,16 +428,16 @@ int main(int argc, char** argv) {
 	
 	sort(sort_course.begin(), sort_course.end());
 	
-	cout << database.size() << endl;
-    cout << course_count.size() << endl;
-    cout << count_record << endl;
+	cout << "total record: " << database.size() << endl;
+    cout << "course_count: " << course_count.size() << endl;
+    cout << "count_record: " << count_record << endl;
     
     //for (vector<uint32_t>::iterator i = sort_course.begin(); i != sort_course.end(); ++i)
     //{
     //	cout << *i << endl;
 	//}
     
-    for (set<string>::iterator i = credit_type.begin(); i != credit_type.end(); ++i)
+    /*for (set<string>::iterator i = credit_type.begin(); i != credit_type.end(); ++i)
     {
     	cout << *i << endl;
 	}
@@ -342,7 +463,7 @@ int main(int argc, char** argv) {
 	for (set<string>::iterator i = course_type2_count.begin(); i != course_type2_count.end(); ++i)
 	{
 		cout << *i << "  " << endl;
-	}
+	}*/
 	
 	cout << "credit_type: " << credit_type.size() << endl;
 	cout << "credit_set:" <<credit_set.size() << endl;
@@ -357,10 +478,52 @@ int main(int argc, char** argv) {
 		fs3 << i->first << ",";
 		i->second.record_detail(fs3);
 	} 
+	//map<string, graduate_rule> stu_course;
+	cout << "stu_course_size: " << stu_course.size() << endl;
+	for (map<string, graduate_rule>::iterator i = stu_course.begin(); i != stu_course.end(); ++i)
+	{
+		fs5 << i->first << endl;
+		fs5 << "compulsory" << ",";
+		if (i->second.compulsory.credit > 0.000001)
+		{
+			for (vector<string>::iterator is = i->second.compulsory.courses.begin(); is != i->second.compulsory.courses.end(); ++is)
+			{
+				if (is + 1 != i->second.compulsory.courses.end())
+					fs5 << *is << ",";
+				else
+				{
+					fs5 << *is << endl;
+				}
+				    
+			}
+		} else {
+			fs5 << "pass" <<endl;
+		}
+		
+		for (vector<subject>::iterator i_sub = i->second.elective.begin(); i_sub != i->second.elective.end(); ++i_sub)
+		{
+			if (i_sub->credit > 0.000001)
+			{
+				fs5 << "elective" << ",";
+				for (vector<string>::iterator is = i_sub->courses.begin(); is != i_sub->courses.end(); ++is)
+				{
+					if (is + 1 != i_sub->courses.end())
+					{
+						fs5 << *is << ",";
+					} else {
+						fs5 << *is << endl;
+					}
+				}
+			}
+		}
+		//fs5 << i->second.
+	}
     
     fs1.close();
     fs2.close();
     fs3.close();
+    fs4.close();
+    fs5.close();
 	
 	return 0;
 }
