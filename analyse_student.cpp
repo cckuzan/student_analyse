@@ -149,6 +149,7 @@ class graduate_rule{
 	public:
 		subject compulsory;
 		vector<subject> elective;
+		vector<subject> equivalence;
 };
 
 void parse_single_rule_by_token(string &input, vector<string> &single_rule, const char token = ',')
@@ -188,6 +189,16 @@ void parse_rule_by_single_rule(vector<string> &single_rule, graduate_rule &rule)
 		}
 		rule.elective.push_back(temp);
 	}
+	if(single_rule[0] == "equivalence")
+	{
+		subject temp;
+		temp.credit = atof(single_rule[1].c_str());
+		for (vector<string>::iterator i = single_rule.begin() + 2; i != single_rule.end(); ++i)
+		{
+			temp.courses.push_back(*i);
+		}
+		rule.equivalence.push_back(temp);
+	}
 }
 
 void parse_rule(fstream &fs, graduate_rule &rule)
@@ -208,6 +219,31 @@ void parse_rule(fstream &fs, graduate_rule &rule)
 
 vector<student> database;
 map<string, graduate_rule> stu_course;
+
+void judge_learned_equivalence(vector<string> &equivalence, graduate_rule &single_student_rule)
+{
+	for (vector<string>::iterator is = equivalence.begin(); is != equivalence.end(); ++is)
+	{
+		vector<string>::iterator com_result = find(single_student_rule.compulsory.courses.begin(),
+			single_student_rule.compulsory.courses.end(), *is);
+		if (com_result != single_student_rule.compulsory.courses.end())
+		{
+			single_student_rule.compulsory.courses.erase(com_result);
+			return;
+		}
+
+		for (vector<subject>::iterator i_sub = single_student_rule.elective.begin(); i_sub != single_student_rule.elective.end();
+			++i_sub)
+		{
+			vector<string>::iterator ele_result = find(i_sub->courses.begin(), i_sub->courses.end(), *is);
+			if(ele_result != i_sub->courses.end())
+			{
+				i_sub->courses.erase(ele_result);
+				return;
+			}
+		}
+	}
+}
 
 void judge_learned_course(vector<student>::iterator &i)
 {
@@ -232,6 +268,19 @@ void judge_learned_course(vector<student>::iterator &i)
 			{
 				is = i_sub->courses.erase(is);
 				i_sub->credit -= i->float_credit;
+			} else
+				++is;
+		}
+		for(vector<subject>::iterator i_sub = stu_course[i->student_id].equivalence.begin();
+		i_sub != stu_course[i->student_id].equivalence.end(); ++i_sub)
+		{
+			for (vector<string>::iterator is = i_sub->courses.begin(); is != i_sub->courses.end();)
+			if (*is == i->course)
+			{
+				judge_learned_equivalence(i_sub->courses, stu_course[i->student_id]);
+				i_sub->courses.clear();
+				i_sub->credit -= i->float_credit;
+				break;
 			} else
 				++is;
 		}
@@ -483,22 +532,23 @@ int main(int argc, char** argv) {
 	for (map<string, graduate_rule>::iterator i = stu_course.begin(); i != stu_course.end(); ++i)
 	{
 		fs5 << i->first << endl;
-		fs5 << "compulsory" << ",";
+		fs5 << "compulsory";
 		if (i->second.compulsory.credit > 0.000001)
 		{
 			for (vector<string>::iterator is = i->second.compulsory.courses.begin(); is != i->second.compulsory.courses.end(); ++is)
 			{
 				if (is + 1 != i->second.compulsory.courses.end())
-					fs5 << *is << ",";
+					fs5 << "," <<*is;
 				else
 				{
-					fs5 << *is << endl;
+					fs5 << "," << *is << endl;
 				}
 				    
 			}
 		} else {
 			fs5 << "pass" <<endl;
 		}
+		fs5 << endl;
 		
 		for (vector<subject>::iterator i_sub = i->second.elective.begin(); i_sub != i->second.elective.end(); ++i_sub)
 		{
@@ -516,6 +566,7 @@ int main(int argc, char** argv) {
 				}
 			}
 		}
+		//cout << endl;
 		//fs5 << i->second.
 	}
     
@@ -525,5 +576,6 @@ int main(int argc, char** argv) {
     fs4.close();
     fs5.close();
 	
+	getchar();
 	return 0;
 }
