@@ -2,11 +2,15 @@
 #include "parse_data.h"
 /* run this program using the console pauser or add your own getch, system("pause") or input loop */
 
-map<string, course_list> study_info;
-
-map<string, course_info> course_database;
-
 int main(int argc, char** argv) {	
+
+	map<string, course_list> study_info;
+
+	map<string, course_info> course_database;
+
+	//map<string, vector<single_course>> learned_course;
+	map<string, vector<string>> learned_course;
+
 	fstream fs1;
 	fstream fs2;
 	fstream fs3;
@@ -17,7 +21,7 @@ int main(int argc, char** argv) {
 
 	fs1.open("C://temp//total_record.csv");
 	vector<student> database;
-	read_origin_student_data(fs1, database);
+	read_origin_student_data(fs1, database, course_database, learned_course);
 	//fs2.open("C://temp//analyse_result_1101.csv");
 	//fs3.open("C://temp//student_total_credit_1101.csv");
 	fs4.open("C://temp//1101_rule.csv");
@@ -32,6 +36,7 @@ int main(int argc, char** argv) {
 	//cout << rule.compulsory.credit << endl;
 	
 	pickup_rule(rule, database, stu_course, "201101");
+	graduate_rule reserve_rule = rule;
 
 	vector<string> course_types;
 	course_types.push_back("学号");
@@ -109,6 +114,54 @@ int main(int argc, char** argv) {
 	cout << "total record: " << database.size() << endl;
     //cout << "course_count: " << course_count.size() << endl;
     //cout << "count_record: " << count_record << endl;
+	for (auto i = learned_course.begin(); i != learned_course.end(); ++i)
+	{
+		cout << i->second.size() << endl;
+	}
+
+	for (auto i = learned_course.begin(); i != learned_course.end();)
+	{
+		for (auto j = reserve_rule.compulsory.courses.begin(); j != reserve_rule.compulsory.courses.end(); ++j)
+		{
+			auto erase_iter = find(i->second.begin(), i->second.end(), *j);
+			if (erase_iter != i->second.end())
+			{
+				i->second.erase(erase_iter);
+			} else {
+				++i;
+			}
+			
+		}
+
+		for (auto j = reserve_rule.elective.begin(); j != reserve_rule.elective.end(); ++j)
+		{
+			for (auto k = j->courses.begin(); k != j->courses.end(); ++k)
+			{
+				auto erase_iter = find(i->second.begin(), i->second.end(), *k);
+				if (erase_iter != i->second.end())
+				{
+					i->second.erase(erase_iter);
+				} else {
+					++i;
+				}
+			}
+		}
+		
+		for (auto j = reserve_rule.equivalence.begin(); j != reserve_rule.equivalence.end(); ++j)
+		{
+			for (auto k = j->courses.begin(); k != j->courses.end(); ++k)
+			{
+				auto erase_iter = find(i->second.begin(), i->second.end(), *k);
+				if (erase_iter != i->second.end())
+				{
+					i->second.erase(erase_iter);
+				} else {
+					++i;
+				}
+			}
+		}
+	}
+
 	
 	record_title(fs3, course_types);
 	
@@ -119,46 +172,8 @@ int main(int argc, char** argv) {
 	} 
 	//map<string, graduate_rule> stu_course;
 	cout << "stu_course_size: " << stu_course.size() << endl;
-	for (map<string, graduate_rule>::iterator i = stu_course.begin(); i != stu_course.end(); ++i)
-	{
-		fs5 << i->first << endl;
-		fs5 << "compulsory";
-		if (i->second.compulsory.credit > 0.000001)
-		{
-			for (vector<string>::iterator is = i->second.compulsory.courses.begin(); is != i->second.compulsory.courses.end(); ++is)
-			{
-				if (is + 1 != i->second.compulsory.courses.end())
-					fs5 << "," <<*is;
-				else
-				{
-					fs5 << "," << *is << endl;
-				}
-				    
-			}
-		} else {
-			fs5 << "pass" <<endl;
-		}
-		fs5 << endl;
-		
-		for (vector<subject>::iterator i_sub = i->second.elective.begin(); i_sub != i->second.elective.end(); ++i_sub)
-		{
-			if (i_sub->credit > 0.000001)
-			{
-				fs5 << "elective" << ",";
-				for (vector<string>::iterator is = i_sub->courses.begin(); is != i_sub->courses.end(); ++is)
-				{
-					if (is + 1 != i_sub->courses.end())
-					{
-						fs5 << *is << ",";
-					} else {
-						fs5 << *is << endl;
-					}
-				}
-			}
-		}
-		//cout << endl;
-		//fs5 << i->second.
-	}
+
+	generation_graduate_report(fs5, stu_course, learned_course);
 
 	fs6 << "课程代码" << "," << "课程名称" << "," << "考核方式" << "," << "学分" << "," << "修读学年" << endl;
 
@@ -170,14 +185,23 @@ int main(int argc, char** argv) {
 
 	for (auto i = database.begin(); i != database.end(); ++i)
 	{
-		single_course temp_single_course;
-		temp_single_course.course_id = i->course;
-		temp_single_course.score = i->float_final_score;
+		string temp_single_course;
+		temp_single_course = i->course;
+		//temp_single_course.score = i->float_final_score;
 
 		if (study_info.find(i->student_id) == study_info.end())
 		{
 			course_list temp_course_list;
 			study_info[i->student_id] = temp_course_list;
+		}
+
+		if (learned_course.find(i->student_id)  == learned_course.end())
+		{
+			vector<string> temp_vstring_course;
+			learned_course[i->student_id] = temp_vstring_course;
+			learned_course[i->student_id].push_back(temp_single_course);
+		} else {
+			learned_course[i->student_id].push_back(temp_single_course);
 		}
 
 		if (i->course_type1 == "必修课")
@@ -221,7 +245,7 @@ int main(int argc, char** argv) {
 			fs7 << "必修课";
 			for (auto j = i->second.require_select.begin(); j != i->second.require_select.end(); ++j)
 			{
-				fs7 << "," << j->course_id;
+				fs7 << "," << *j;
 			}
 			fs7 << endl;
 		} 
@@ -230,7 +254,7 @@ int main(int argc, char** argv) {
 			fs7 << ",任选课";
 			for (auto j = i->second.free_select.begin(); j != i->second.free_select.end(); ++j)
 			{
-				fs7 << "," << j->course_id;
+				fs7 << "," << *j;
 			}
 			fs7 << endl;
 		} 
@@ -239,7 +263,7 @@ int main(int argc, char** argv) {
 			fs7 << ",通识必修（改）";
 			for (auto j = i->second.general_require.begin(); j != i->second.general_require.end(); ++j)
 			{
-				fs7 << "," << j->course_id;
+				fs7 << "," << *j;
 			}
 			fs7 << endl;
 		} 
@@ -248,7 +272,7 @@ int main(int argc, char** argv) {
 			fs7 << ",学科基础（改）";
 			for (auto j = i->second.subject_basic.begin(); j != i->second.subject_basic.end(); ++j)
 			{
-				fs7 << "," << j->course_id;
+				fs7 << "," << *j;
 			}
 			fs7 << endl;
 		} 
@@ -257,7 +281,7 @@ int main(int argc, char** argv) {
 			fs7 << ",专业核心（改）";
 			for (auto j = i->second.professional_core.begin(); j != i->second.professional_core.end(); ++j)
 			{
-				fs7 << "," << j->course_id;
+				fs7 << "," << *j;
 			}
 			fs7 << endl;
 		} 
@@ -266,7 +290,7 @@ int main(int argc, char** argv) {
 			fs7 << ",限选课";
 			for (auto j = i->second.restrict_select.begin(); j != i->second.restrict_select.end(); ++j)
 			{
-				fs7 << "," << j->course_id;
+				fs7 << "," << *j;
 			}
 			fs7 << endl;
 		} 
@@ -275,7 +299,7 @@ int main(int argc, char** argv) {
 			fs7 << ",通识限选（改）";
 			for (auto j = i->second.general_restrict.begin(); j != i->second.general_restrict.end(); ++j)
 			{
-				fs7 << "," << j->course_id;
+				fs7 << "," << *j;
 			}
 			fs7 << endl;
 		} 
@@ -284,7 +308,7 @@ int main(int argc, char** argv) {
 			fs7 << ",专业限选（改）";
 			for (auto j = i->second.professional_restrict.begin(); j != i->second.professional_restrict.end(); ++j)
 			{
-				fs7 << "," << j->course_id;
+				fs7 << "," << *j;
 			}
 			fs7 << endl;
 		} 
@@ -292,7 +316,7 @@ int main(int argc, char** argv) {
 			fs7 << ",其他";
 			for (auto j = i->second.other.begin(); j != i->second.other.end(); ++j)
 			{
-				fs7 << "," << j->course_id;
+				fs7 << "," << *j;
 			}
 			fs7 << endl;
 		}
@@ -302,10 +326,16 @@ int main(int argc, char** argv) {
     //fs2.close();
     //fs3.close();
     fs4.close();
-    //fs5.close();
+    fs5.close();
 	//fs6.close();
 	//fs7.close();
 	
+	/*cout << find_course(course_database, "08241234") << endl;
+	cout << find_course(course_database, "08241235") << endl;
+	cout << find_course(course_database, "08241059") << endl;
+	cout << find_course(course_database, "08241237") << endl;
+	cout << find_course(course_database, "08241238") << endl;*/
+	//cout << find_course(course_database, "08241238") << endl;
 	//getchar();
 	return 0;
 }

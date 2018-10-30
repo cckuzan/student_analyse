@@ -69,7 +69,14 @@ public:
 	float score;
 
 	single_course();
+
+	//bool operator==(single_course &rvalue);
 };
+
+/*bool single_course::operator==(single_course &rvalue)
+{
+	return this->course_id == rvalue.course_id;
+}*/
 
 single_course::single_course()
 {
@@ -79,7 +86,7 @@ single_course::single_course()
 class course_list
 {
 public:
-	vector<single_course> require_select;
+	/*vector<single_course> require_select;
 	vector<single_course> free_select;
 	vector<single_course> restrict_select;
 	vector<single_course> general_require;
@@ -88,7 +95,18 @@ public:
 	vector<single_course> professional_core;
 	vector<single_course> professional_restrict;
 
-	vector<single_course> other;
+	vector<single_course> other;*/
+
+	vector<string> require_select;
+	vector<string> free_select;
+	vector<string> restrict_select;
+	vector<string> general_require;
+	vector<string> general_restrict;
+	vector<string> subject_basic;
+	vector<string> professional_core;
+	vector<string> professional_restrict;
+
+	vector<string> other;
 };
 
 void record_title(fstream &fs, vector<string> &course_types)
@@ -270,7 +288,7 @@ void parse_rule(fstream &fs, graduate_rule &rule)
 	}
 }
 
-void judge_learned_equivalence(vector<string> &equivalence, graduate_rule &single_student_rule)
+void judge_learned_equivalence(vector<string> &equivalence, graduate_rule &single_student_rule, float credit)
 {
 	for (vector<string>::iterator is = equivalence.begin(); is != equivalence.end(); ++is)
 	{
@@ -279,6 +297,7 @@ void judge_learned_equivalence(vector<string> &equivalence, graduate_rule &singl
 		if (com_result != single_student_rule.compulsory.courses.end())
 		{
 			single_student_rule.compulsory.courses.erase(com_result);
+			single_student_rule.compulsory.credit -= credit;
 			return;
 		}
 
@@ -289,6 +308,7 @@ void judge_learned_equivalence(vector<string> &equivalence, graduate_rule &singl
 			if(ele_result != i_sub->courses.end())
 			{
 				i_sub->courses.erase(ele_result);
+				i_sub->credit -= credit;
 				return;
 			}
 		}
@@ -318,6 +338,8 @@ void judge_learned_course(vector<student>::iterator &i, map<string, graduate_rul
 			{
 				is = i_sub->courses.erase(is);
 				i_sub->credit -= i->float_credit;
+				//cout << i->course << ":  " << i->float_credit << "leave:  " << i_sub->credit << endl;
+
 			} else
 				++is;
 		}
@@ -327,7 +349,7 @@ void judge_learned_course(vector<student>::iterator &i, map<string, graduate_rul
 			for (vector<string>::iterator is = i_sub->courses.begin(); is != i_sub->courses.end();)
 			if (*is == i->course)
 			{
-				judge_learned_equivalence(i_sub->courses, stu_course[i->student_id]);
+				judge_learned_equivalence(i_sub->courses, stu_course[i->student_id], i_sub->credit);
 				i_sub->courses.clear();
 				i_sub->credit -= i->float_credit;
 				break;
@@ -354,7 +376,7 @@ int calculate_semester(course_info &output, student &input)
 	result = output.semester;
 	if (output.semester > 8)
 	{
-		cout << entrance_year << "  " << study_year << "  " << study_term << endl;
+		//cout << entrance_year << "  " << study_year << "  " << study_term << endl;
 		output.semester = 0;
 		return result;
 	}
@@ -368,7 +390,8 @@ void ignore_the_first_line(fstream &fs)
 	getline(fs, intemp, '\n');
 }
 
-void read_origin_student_data(fstream &fs, vector<student> &database)
+void read_origin_student_data(fstream &fs, vector<student> &database, map<string, course_info> &course_database,
+	map<string, vector<string>> &learned_course)
 {
 	ignore_the_first_line(fs);
 	while(!fs.eof())
@@ -459,7 +482,7 @@ void read_origin_student_data(fstream &fs, vector<student> &database)
 		getline(fs, temp_student.remark, '\n');
 		database.push_back(temp_student);
 
-		/*if (course_database.find(temp_student.course) == course_database.end())
+		if (course_database.find(temp_student.course) == course_database.end())
 		{
 			course_info course_info_temp;
 			course_info_temp.course_name = course_name;
@@ -480,8 +503,15 @@ void read_origin_student_data(fstream &fs, vector<student> &database)
 
 			if (course_database[temp_student.course].semester == 0)
 				calculate_semester(course_database[temp_student.course], temp_student);
-		}*/
+		}
 
+
+		if (learned_course.find(temp_student.student_id) == learned_course.end())
+		{
+			vector<string> tempstring;
+			learned_course[temp_student.student_id] = tempstring;
+		}
+		learned_course[temp_student.student_id].push_back(temp_student.course);
 	}
 }
 
@@ -497,4 +527,71 @@ void pickup_rule(graduate_rule &rule, vector<student> &database, map<string, gra
 			}
 		}
 	}
+}
+
+void generation_graduate_report(fstream &fs, map<string, graduate_rule> &stu_course, map<string, vector<string> > &learned_course)
+{
+	for (map<string, graduate_rule>::iterator i = stu_course.begin(); i != stu_course.end(); ++i)
+	{
+		fs << i->first << endl;
+		fs << "compulsory:";
+		if ((i->second.compulsory.credit) > 0.000001 && !i->second.compulsory.courses.empty())
+		{
+			for (vector<string>::iterator is = i->second.compulsory.courses.begin(); is != i->second.compulsory.courses.end(); ++is)
+			{
+				if (is + 1 != i->second.compulsory.courses.end())
+					fs << "," <<*is;
+				else
+				{
+					fs << "," << *is << endl;
+				}
+				    
+			}
+		} else {
+			fs << "pass" <<endl;
+		}
+		//fs << endl;
+		
+		for (vector<subject>::iterator i_sub = i->second.elective.begin(); i_sub != i->second.elective.end(); ++i_sub)
+		{
+			if (i_sub->credit > 0.000001)
+			{
+				cout << i_sub->credit << endl;
+				fs << "elective" << ",";
+				for (vector<string>::iterator is = i_sub->courses.begin(); is != i_sub->courses.end(); ++is)
+				{
+					if (is + 1 != i_sub->courses.end())
+					{
+						fs << *is << ",";
+					} else {
+						fs << *is << endl;
+					}
+				}
+			}
+		}
+
+		if (learned_course.find(i->first) != learned_course.end())
+		{
+			if (!learned_course[i->first].empty())
+			{
+				fs << "other learned:";
+				for (auto iter = learned_course[i->first].begin(); iter != learned_course[i->first].end(); ++iter)
+				{
+					fs << "," << *iter;
+				}
+				cout << endl;
+			}
+			
+		}
+		//cout << endl;
+		//fs5 << i->second.
+	}
+}
+
+float find_course(map<string, course_info> &course_info, string course_id)
+{
+	if (course_info.find(course_id) == course_info.end())
+		return 0.0;
+
+	return course_info[course_id].credit;
 }
