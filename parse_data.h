@@ -19,6 +19,7 @@ class student
 	string major;
 	string student_id;
 	string course;
+	string course_name;
 	string credit;
 	float float_credit;
 	string exam_type;
@@ -390,8 +391,49 @@ void ignore_the_first_line(fstream &fs)
 	getline(fs, intemp, '\n');
 }
 
-void read_origin_student_data(fstream &fs, vector<student> &database, map<string, course_info> &course_database,
-	map<string, vector<string>> &learned_course)
+void get_course_database(vector<student> &database, map<string, course_info> &course_database)
+{
+	for (auto i = database.begin(); i != database.end(); ++i)
+	{
+		if (course_database.find(i->course) == course_database.end())
+		{
+			course_info course_info_temp;
+			course_info_temp.course_name = i->course_name;
+			course_info_temp.credit = i->float_credit;
+			//cout << course_info_temp.credit << endl;
+			course_info_temp.exam_type = i->exam_type;
+
+			calculate_semester(course_info_temp, *i);
+
+			course_database[i->course] = course_info_temp;
+		} else {
+			course_info course_temp;
+			if (course_database[i->course].credit != i->float_credit)
+				cout << "find not equal:" << i->serial_id << i->course_name << "old["<< course_database[i->student_id].credit << "],new[" 
+				<< i->float_credit << "]" <<endl;
+			if (course_database[i->course].semester > calculate_semester(course_temp, *i))
+				course_database[i->course].semester = calculate_semester(course_temp, *i);
+
+			if (course_database[i->course].semester == 0)
+				calculate_semester(course_database[i->course], *i);
+		}
+	}
+}
+
+void get_learned_course_database(vector<student> &database, map<string, vector<string>> &learned_course)
+{
+	for (auto i = database.begin(); i != database.end(); ++i)
+	{
+		if (learned_course.find(i->student_id) == learned_course.end())
+		{
+			vector<string> tempstring;
+			learned_course[i->student_id] = tempstring;
+		}
+		learned_course[i->student_id].push_back(i->course);
+	}
+}
+
+void read_origin_student_data(fstream &fs, vector<student> &database)
 {
 	ignore_the_first_line(fs);
 	while(!fs.eof())
@@ -422,10 +464,13 @@ void read_origin_student_data(fstream &fs, vector<student> &database, map<string
 		if (pos1 != string::npos)
 		{
 			temp_student.course = intemp.substr(pos1 + 1, pos2 - pos1 - 1);
-			course_name = intemp.substr(pos2 + 1);
+			temp_student.course_name = intemp.substr(pos2 + 1);
+			//temp_student.course_
+			//course_name = intemp.substr(pos2 + 1);
 		} else {
 			temp_student.course = intemp.substr(1, 8);
-			course_name = intemp.substr(8 + 1);
+			temp_student.course_name = intemp.substr(8 + 1);
+			//course_name = intemp.substr(8 + 1);
 		}
 
 		getline(fs, temp_student.credit, ',');
@@ -481,37 +526,6 @@ void read_origin_student_data(fstream &fs, vector<student> &database, map<string
 		getline(fs, temp_student.special_case, ',');
 		getline(fs, temp_student.remark, '\n');
 		database.push_back(temp_student);
-
-		if (course_database.find(temp_student.course) == course_database.end())
-		{
-			course_info course_info_temp;
-			course_info_temp.course_name = course_name;
-			course_info_temp.credit = temp_student.float_credit;
-			//cout << course_info_temp.credit << endl;
-			course_info_temp.exam_type = temp_student.exam_type;
-
-			calculate_semester(course_info_temp, temp_student);
-
-			course_database[temp_student.course] = course_info_temp;
-		} else {
-			course_info course_temp;
-			if (course_database[temp_student.course].credit != temp_student.float_credit)
-				cout << "find not equal:" << temp_student.serial_id << course_name << "old["<< course_database[temp_student.student_id].credit << "],new[" 
-				<< temp_student.float_credit << "]" <<endl;
-			if (course_database[temp_student.course].semester > calculate_semester(course_temp, temp_student))
-				course_database[temp_student.course].semester = calculate_semester(course_temp, temp_student);
-
-			if (course_database[temp_student.course].semester == 0)
-				calculate_semester(course_database[temp_student.course], temp_student);
-		}
-
-
-		if (learned_course.find(temp_student.student_id) == learned_course.end())
-		{
-			vector<string> tempstring;
-			learned_course[temp_student.student_id] = tempstring;
-		}
-		learned_course[temp_student.student_id].push_back(temp_student.course);
 	}
 }
 
@@ -556,7 +570,7 @@ void generation_graduate_report(fstream &fs, map<string, graduate_rule> &stu_cou
 		{
 			if (i_sub->credit > 0.000001)
 			{
-				cout << i_sub->credit << endl;
+				//cout << i_sub->credit << endl;
 				fs << "elective" << ",";
 				for (vector<string>::iterator is = i_sub->courses.begin(); is != i_sub->courses.end(); ++is)
 				{
@@ -579,11 +593,11 @@ void generation_graduate_report(fstream &fs, map<string, graduate_rule> &stu_cou
 				{
 					fs << "," << *iter;
 				}
-				cout << endl;
+				fs << endl;
 			}
 			
 		}
-		//cout << endl;
+		//fs << endl;
 		//fs5 << i->second.
 	}
 }
@@ -594,4 +608,258 @@ float find_course(map<string, course_info> &course_info, string course_id)
 		return 0.0;
 
 	return course_info[course_id].credit;
+}
+
+void dbg_print_rule(graduate_rule &rule)
+{
+	cout << "compulsory:";
+	for (auto i = rule.compulsory.courses.begin(); i != rule.compulsory.courses.end(); ++i)
+	{
+		cout << *i << ",";
+	}
+	cout << endl;
+
+	for (auto i = rule.elective.begin(); i != rule.elective.end(); ++i)
+	{
+		cout << "elective:";
+		for (auto j = i->courses.begin(); j != i->courses.end(); ++j)
+		{
+			cout << *j << ",";
+		}
+		cout << endl;
+	}
+
+	for (auto i = rule.equivalence.begin(); i != rule.equivalence.end(); ++i)
+	{
+		cout << "equivalence:";
+		for (auto j = i->courses.begin(); j != i->courses.end(); ++j)
+		{
+			cout << *j << ",";
+		}
+		cout << endl;
+	}
+}
+
+void calculate_learned_credits(vector<student> &database, map<string, graduate_rule> &stu_course,
+	map<string, credit_calculate> &credit)
+{
+	for (vector<student>::iterator i = database.begin(); i != database.end(); ++i)
+	{
+		judge_learned_course(i, stu_course);
+		if (i->float_final_score >= 60.0)
+		{
+			credit[i->student_id].student_total_credit += i->float_credit;
+			if (i->course_type1 == "必修课")
+			{
+				credit[i->student_id].required_course_credit +=  i->float_credit;
+			} else if (i->course_type1 == "任选课")
+			{
+				credit[i->student_id].free_course_credit +=  i->float_credit;
+			} else if (i->course_type1 == "通识必修（改）")
+			{
+				credit[i->student_id].general_required_course_credit +=  i->float_credit;
+			} else if (i->course_type1 == "学科基础（改）")
+			{
+				credit[i->student_id].basic_course +=  i->float_credit;
+			} else if (i->course_type1 == "专业核心（改）")
+			{
+				credit[i->student_id].professional_course +=  i->float_credit;
+			} else if (i->course_type1 == "限选课")
+			{
+				credit[i->student_id].restrict_course +=  i->float_credit;
+			} else if (i->course_type1 == "通识限选（改）")
+			{
+				credit[i->student_id].general_restrict_credit +=  i->float_credit;
+			}  else if (i->course_type1 == "专业限选（改）")
+			{
+				credit[i->student_id].professional_restrict_credit +=  i->float_credit;
+			}  else
+			{
+				credit[i->student_id].other_credit +=  i->float_credit;
+			}
+			
+		}
+	}
+}
+
+void get_learned_other_course(graduate_rule &reserve_rule, map<string, vector<string>> &learned_course)
+{
+	for (auto i = learned_course.begin(); i != learned_course.end();)
+	{
+		for (auto j = reserve_rule.compulsory.courses.begin(); j != reserve_rule.compulsory.courses.end(); ++j)
+		{
+			auto erase_iter = find(i->second.begin(), i->second.end(), *j);
+			if (erase_iter != i->second.end())
+			{
+				i->second.erase(erase_iter);
+			}
+		}
+
+		for (auto j = reserve_rule.elective.begin(); j != reserve_rule.elective.end(); ++j)
+		{
+			for (auto k = j->courses.begin(); k != j->courses.end(); ++k)
+			{
+				auto erase_iter = find(i->second.begin(), i->second.end(), *k);
+				if (erase_iter != i->second.end())
+				{
+					i->second.erase(erase_iter);
+				}
+			}
+		}
+		
+		for (auto j = reserve_rule.equivalence.begin(); j != reserve_rule.equivalence.end(); ++j)
+		{
+			for (auto k = j->courses.begin(); k != j->courses.end(); ++k)
+			{
+				auto erase_iter = find(i->second.begin(), i->second.end(), *k);
+				if (erase_iter != i->second.end())
+				{
+					i->second.erase(erase_iter);
+				}
+			}
+		}
+		++i;
+	}
+}
+
+void classify_learned_course(vector<student> &database, map<string, course_list> &study_info)
+{
+	for (auto i = database.begin(); i != database.end(); ++i)
+	{
+		string temp_single_course;
+		temp_single_course = i->course;
+		//temp_single_course.score = i->float_final_score;
+
+		if (study_info.find(i->student_id) == study_info.end())
+		{
+			course_list temp_course_list;
+			study_info[i->student_id] = temp_course_list;
+		}
+
+		/*if (learned_course.find(i->student_id)  == learned_course.end())
+		{
+			vector<string> temp_vstring_course;
+			learned_course[i->student_id] = temp_vstring_course;
+			learned_course[i->student_id].push_back(temp_single_course);
+		} else {
+			learned_course[i->student_id].push_back(temp_single_course);
+		}*/
+
+		if (i->course_type1 == "必修课")
+		{
+			study_info[i->student_id].require_select.push_back(temp_single_course);
+		} else if (i->course_type1 == "任选课")
+		{
+			study_info[i->student_id].free_select.push_back(temp_single_course);
+		} else if (i->course_type1 == "通识必修（改）")
+		{
+			study_info[i->student_id].general_require.push_back(temp_single_course);
+		} else if (i->course_type1 == "学科基础（改）")
+		{
+			study_info[i->student_id].subject_basic.push_back(temp_single_course);
+		} else if (i->course_type1 == "专业核心（改）")
+		{
+			study_info[i->student_id].professional_core.push_back(temp_single_course);
+		} else if (i->course_type1 == "限选课")
+		{
+			study_info[i->student_id].restrict_select.push_back(temp_single_course);
+		} else if (i->course_type1 == "通识限选（改）")
+		{
+			study_info[i->student_id].general_restrict.push_back(temp_single_course);
+		}  else if (i->course_type1 == "专业限选（改）")
+		{
+			study_info[i->student_id].professional_restrict.push_back(temp_single_course);
+		}  else
+		{
+			study_info[i->student_id].other.push_back(temp_single_course);
+		}
+	}
+}
+
+void generation_study_info_report(fstream &fs, map<string, course_list> &study_info)
+{
+	for (auto i = study_info.begin(); i != study_info.end(); ++i)
+	{
+		fs << i->first << ",";
+		if (!i->second.require_select.empty())
+		{
+			fs << "必修课";
+			for (auto j = i->second.require_select.begin(); j != i->second.require_select.end(); ++j)
+			{
+				fs << "," << *j;
+			}
+			fs << endl;
+		} 
+		if (!i->second.free_select.empty())
+		{
+			fs << ",任选课";
+			for (auto j = i->second.free_select.begin(); j != i->second.free_select.end(); ++j)
+			{
+				fs << "," << *j;
+			}
+			fs << endl;
+		} 
+		if (!i->second.general_require.empty())
+		{
+			fs << ",通识必修（改）";
+			for (auto j = i->second.general_require.begin(); j != i->second.general_require.end(); ++j)
+			{
+				fs << "," << *j;
+			}
+			fs << endl;
+		} 
+		if (!i->second.subject_basic.empty())
+		{
+			fs << ",学科基础（改）";
+			for (auto j = i->second.subject_basic.begin(); j != i->second.subject_basic.end(); ++j)
+			{
+				fs << "," << *j;
+			}
+			fs << endl;
+		} 
+		if (!i->second.professional_core.empty())
+		{
+			fs << ",专业核心（改）";
+			for (auto j = i->second.professional_core.begin(); j != i->second.professional_core.end(); ++j)
+			{
+				fs << "," << *j;
+			}
+			fs << endl;
+		} 
+		if (!i->second.restrict_select.empty())
+		{
+			fs << ",限选课";
+			for (auto j = i->second.restrict_select.begin(); j != i->second.restrict_select.end(); ++j)
+			{
+				fs << "," << *j;
+			}
+			fs << endl;
+		} 
+		if (!i->second.general_restrict.empty())
+		{
+			fs << ",通识限选（改）";
+			for (auto j = i->second.general_restrict.begin(); j != i->second.general_restrict.end(); ++j)
+			{
+				fs << "," << *j;
+			}
+			fs << endl;
+		} 
+		if (!i->second.professional_restrict.empty())
+		{
+			fs << ",专业限选（改）";
+			for (auto j = i->second.professional_restrict.begin(); j != i->second.professional_restrict.end(); ++j)
+			{
+				fs << "," << *j;
+			}
+			fs << endl;
+		} 
+		if (!i->second.other.empty()){
+			fs << ",其他";
+			for (auto j = i->second.other.begin(); j != i->second.other.end(); ++j)
+			{
+				fs << "," << *j;
+			}
+			fs << endl;
+		}
+	}
 }
