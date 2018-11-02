@@ -424,12 +424,15 @@ void get_learned_course_database(vector<student> &database, map<string, vector<s
 {
 	for (auto i = database.begin(); i != database.end(); ++i)
 	{
-		if (learned_course.find(i->student_id) == learned_course.end())
+		if (i->float_final_score > 59.99)
 		{
-			vector<string> tempstring;
-			learned_course[i->student_id] = tempstring;
+			if (learned_course.find(i->student_id) == learned_course.end())
+			{
+				vector<string> tempstring;
+				learned_course[i->student_id] = tempstring;
+			}
+			learned_course[i->student_id].push_back(i->course);
 		}
-		learned_course[i->student_id].push_back(i->course);
 	}
 }
 
@@ -858,6 +861,155 @@ void generation_study_info_report(fstream &fs, map<string, course_list> &study_i
 			for (auto j = i->second.other.begin(); j != i->second.other.end(); ++j)
 			{
 				fs << "," << *j;
+			}
+			fs << endl;
+		}
+	}
+}
+
+bool judge_graduate(graduate_rule &graduate)
+{
+	if (!graduate.compulsory.courses.empty())
+		return false;
+
+	for (auto i = graduate.elective.begin(); i != graduate.elective.end(); ++i)
+	{
+		if (i->credit > 0.000001)
+			return false;
+	}
+
+    return true;
+}
+
+void generation_graduate_info(fstream &fs, map<string, course_list> &study_info, map<string, vector<string>> &learned_course,
+	map<string, credit_calculate> &credit, map<string, course_info> &course_database, map<string, graduate_rule> &stu_course)
+{
+	fs << "学号" << "," << "课程类别" << "," << "学分" << "," << "课程列表" << endl;
+	for (auto i = study_info.begin(); i != study_info.end(); ++i)
+	{
+		fs << i->first << ","; fs << "总学分:," << credit[i->first].student_total_credit << endl;
+
+		fs << "," << "必修课," << credit[i->first].required_course_credit;
+		for (auto j = i->second.require_select.begin(); j != i->second.require_select.end(); ++j)
+		{
+			fs << "," << *j;
+		}
+		fs << endl;
+
+		fs << "," << "任选课," << credit[i->first].free_course_credit;
+		for (auto j = i->second.free_select.begin(); j != i->second.free_select.end(); ++j)
+		{
+			fs << "," << *j;
+		}
+		fs << endl;
+
+		fs << "," << "通识必修（改）," << credit[i->first].general_required_course_credit;
+		for (auto j = i->second.general_require.begin(); j != i->second.general_require.end(); ++j)
+		{
+			fs << "," << *j;
+		}
+		fs << endl;
+
+		fs << "," << "学科基础（改）," << credit[i->first].basic_course;
+		for (auto j = i->second.subject_basic.begin(); j != i->second.subject_basic.end(); ++j)
+		{
+			fs << "," << *j;
+		}
+		fs << endl;
+
+		fs << "," << "专业核心（改）," << credit[i->first].professional_course;
+		for (auto j = i->second.professional_core.begin(); j != i->second.professional_core.end(); ++j)
+		{
+			fs << "," << *j;
+		}
+		fs << endl;
+
+		fs << "," << "限选课," << credit[i->first].restrict_course;
+		for (auto j = i->second.restrict_select.begin(); j != i->second.restrict_select.end(); ++j)
+		{
+			fs << "," << *j;
+		}
+		fs << endl;
+
+		fs << "," << "通识限选（改）," << credit[i->first].general_restrict_credit;
+		for (auto j = i->second.general_restrict.begin(); j != i->second.general_restrict.end(); ++j)
+		{
+			fs << "," << *j;
+		}
+		fs << endl;
+
+		fs << "," << "专业限选（改）," << credit[i->first].professional_restrict_credit;
+		for (auto j = i->second.professional_restrict.begin(); j != i->second.professional_restrict.end(); ++j)
+		{
+			fs << "," << *j;
+		}
+		fs << endl;
+
+		fs << "," << "其他," << credit[i->first].other_credit;
+		for (auto j = i->second.other.begin(); j != i->second.other.end(); ++j)
+		{
+			fs << "," << *j;
+		}
+		fs << endl;
+
+		fs << "," << "要求以外,";
+		float temp = 0.0;
+		for (auto j = learned_course[i->first].begin(); j != learned_course[i->first].end(); ++j)
+		{
+			temp += course_database[*j].credit;
+		}
+		fs << temp;
+
+		for (auto j = learned_course[i->first].begin(); j != learned_course[i->first].end(); ++j)
+		{
+			fs << "," << *j;
+		}
+		fs << endl;
+
+		fs << "是否毕业，";
+
+		bool is_graduate = true;
+
+		is_graduate = judge_graduate(stu_course[i->first]);
+
+		if (is_graduate)
+			fs << "是" << endl;
+		else 
+			fs << "否" << endl;
+
+		if (!is_graduate)
+		{
+			fs << ",原因" << endl;
+			if (!stu_course[i->first].compulsory.courses.empty())
+			{
+				fs << "必修未修";
+				float temp = 0.0;
+				for (auto k = stu_course[i->first].compulsory.courses.begin(); k != stu_course[i->first].compulsory.courses.end(); ++k)
+				{
+					temp += course_database[*k].credit;
+				}
+				fs << "," << temp;
+
+				for (auto k = stu_course[i->first].compulsory.courses.begin(); k != stu_course[i->first].compulsory.courses.end(); ++k)
+				{
+					fs << "," << *k;
+				}
+				fs << endl;
+			}
+
+			for (auto k = stu_course[i->first].elective.begin(); k != stu_course[i->first].elective.end(); ++k)
+			{
+				if (k->credit > 0.0000001)
+				{
+					fs << "选修未修";
+					fs << "," << k->credit;
+
+					for (auto m = k->courses.begin(); m != k->courses.end(); ++m)
+					{
+						fs << "," << *m;
+					}
+					fs << endl;
+				}
 			}
 			fs << endl;
 		}
