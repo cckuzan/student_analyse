@@ -1015,3 +1015,39 @@ void generation_graduate_info(fstream &fs, map<string, course_list> &study_info,
 		}
 	}
 }
+ 
+int levenshtein(string str1,string str2)
+{
+	int n = str1.size();
+	int m = str2.size();
+	if ( n == 0)
+		return m;
+	if ( m == 0)
+		return n;
+	int **Arr = (int**)malloc( (m+1)*sizeof(int*) );
+	for (int i=0;i<=m;i++)
+		Arr[i] = (int*)malloc( (n+1)*sizeof(int) );
+	int cost = 0;
+	for(int i=0;i<=n;i++)
+		Arr[0][i] = i;
+	for(int j=0;j<=m;j++)
+		Arr[j][0] = j;
+	for(int i=1;i<=n;i++)
+		for(int j=1;j<=m;j++)
+		{
+			if (str1[i-1] == str2[j-1])
+				cost = 0;
+			else
+				cost = 1;
+			Arr[j][i] = Arr[j-1][i]+1<Arr[j][i-1]+1?Arr[j-1][i]+1:Arr[j][i-1] +1 ;
+			Arr[j][i] = Arr[j][i]<Arr[j-1][i-1]+cost?Arr[j][i]:Arr[j-1][i-1]+cost;
+		}
+	int nEdit = Arr[m][n];
+ 
+	for(int i=0;i<=m;i++)
+		free(Arr[i]);
+	free(Arr);
+	
+	return nEdit;
+ 
+}

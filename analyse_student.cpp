@@ -136,5 +136,8 @@ int main(int argc, char** argv) {
 	//cout << find_course(course_database, "08241238") << endl;
 	//getchar();
 	//dbg_print_rule(rule);
+
+
+	cout << levenshtein("abed", "abdd") << endl;
 	return 0;
 }
