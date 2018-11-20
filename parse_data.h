@@ -59,6 +59,7 @@ class credit_calculate
 	float general_restrict_credit;
 	float professional_restrict_credit;
 	float other_credit;
+	float gpa_value;
 	
 	void record_detail(fstream &fs);
 };
@@ -148,6 +149,7 @@ credit_calculate::credit_calculate()
 	general_restrict_credit = 0.0;
 	professional_restrict_credit = 0.0;
 	other_credit = 0.0;
+	gpa_value = 0.0;
 }
 
 void student::pickup()
@@ -224,6 +226,8 @@ class graduate_rule{
 		vector<subject> equivalence;
 };
 
+void parse_rule(fstream &fs, graduate_rule &rule);
+
 void parse_single_rule_by_token(string &input, vector<string> &single_rule, const char token = ',')
 {
 	single_rule.clear();
@@ -270,6 +274,16 @@ void parse_rule_by_single_rule(vector<string> &single_rule, graduate_rule &rule)
 			temp.courses.push_back(*i);
 		}
 		rule.equivalence.push_back(temp);
+	}
+	if (single_rule[0] == "import")
+	{
+		string file_name = single_rule[1];
+		fstream temp_fs;
+		temp_fs.open(file_name);
+		if (temp_fs)
+		{
+			parse_rule(temp_fs, rule);
+		}
 	}
 }
 
@@ -681,6 +695,10 @@ void calculate_learned_credits(vector<student> &database, map<string, graduate_r
 				credit[i->student_id].other_credit +=  i->float_credit;
 			}
 			
+			if (i->exam_type == "¿¼ÊÔ" && i->float_final_score >= 60.0)
+			{
+				credit[i->student_id].gpa_value += (i->float_final_score - 50.0) * i->float_credit;
+			}
 		}
 	}
 }
@@ -977,6 +995,11 @@ void generation_graduate_info(fstream &fs, map<string, course_list> &study_info,
 		else 
 			fs << "·ñ" << endl;
 
+		if (is_graduate)
+		{
+			fs << "¼¨µã," << credit[i->first].gpa_value << endl;
+		}
+
 		if (!is_graduate)
 		{
 			fs << ",Ô­Òò" << endl;
@@ -1050,4 +1073,78 @@ int levenshtein(string str1,string str2)
 	
 	return nEdit;
  
+}
+
+void classify_course_info(map<string, course_info> &course_database, map<string, vector<string>> &classify_course)
+{
+	map<string, course_info> temp_course_database = course_database;
+	//cout << "course_database_size " << temp_course_database.size() << endl;
+	for (; !temp_course_database.empty();)
+	{
+		auto i = temp_course_database.begin();
+		//auto index = ++i;
+		
+		if (classify_course.find(i->second.course_name) == classify_course.end())
+		{
+			vector<string> temp_course_list;
+			temp_course_list.push_back(i->first);
+			classify_course[i->second.course_name] = temp_course_list;
+			//i = temp_course_database.erase(i);
+		}
+
+		auto temp_iter = i;
+		for (auto index = ++temp_iter; index != temp_course_database.end();)
+		{
+			if (levenshtein(i->second.course_name, index->second.course_name) < 3)
+			{
+				classify_course[i->second.course_name].push_back(index->first);
+				index = temp_course_database.erase(index);
+			}
+			else {
+				++index;
+			}
+		}
+
+		temp_course_database.erase(temp_course_database.begin());
+	}
+}
+
+void generation_course_classify_info(fstream &fs, map<string, vector<string>> &classify_course)
+{
+	for (auto i = classify_course.begin(); i != classify_course.end(); ++i)
+	{
+		fs << i->first;
+		for (auto j = i->second.begin(); j != i->second.end(); ++j)
+		{
+			fs << "," << *j;
+		}
+		fs << endl;
+	}
+}
+
+void generation_equivalence(fstream &fs, map<string, vector<string>> &classify_course, map<string, course_info> &course_database)
+{
+	//int total_size = 0;
+	//int cal_size = 0;
+	//int count = 0;
+	for (auto i = classify_course.begin(); i != classify_course.end(); ++i)
+	{
+		//total_size += i->second.size();
+		string base_course_id = i->second[0];
+		if (i->second.size() > 1)
+		{
+			//count++;
+			//cal_size += i->second.size();
+			for (auto j = i->second.begin() + 1; j != i->second.end(); ++j)
+			{
+				fs << "equivalence" << ",";
+				fs << course_database[base_course_id].credit << ",";
+				fs << base_course_id << ",";
+				fs << *j << endl;
+			}
+		}
+	}
+	//cout << "total_size " << total_size << endl;
+	//cout << "cal_size " << cal_size << endl;
+	//cout << "count " << count << endl;
 }

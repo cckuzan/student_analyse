@@ -10,6 +10,8 @@ int main(int argc, char** argv) {
 
 	//map<string, vector<single_course>> learned_course;
 	map<string, vector<string>> learned_course;
+	
+	map<string, vector<string>> classify_course;
 
 	fstream fs1;
 	fstream fs2;
@@ -19,6 +21,8 @@ int main(int argc, char** argv) {
 	fstream fs6;
 	fstream fs7;
 	fstream fs8;
+	fstream fs9;
+	fstream fs10;
 
 	fs1.open("C://temp//total_record.csv");
 	vector<student> database;
@@ -33,7 +37,9 @@ int main(int argc, char** argv) {
 	//fs6.open("C://temp//course_info.csv");
 	//fs7.open("C://temp//study_info.csv");
 	fs8.open("C://temp//graduate_report.csv");
-	
+	fs9.open("C://temp//classify_course.csv");
+	//fs10.open("C://temp//equivalence_database1.csv");
+
 	graduate_rule rule;
 	parse_rule(fs4, rule);
 
@@ -118,6 +124,12 @@ int main(int argc, char** argv) {
 	//generation_study_info_report(fs7, study_info);
 	generation_graduate_info(fs8, study_info,learned_course,
 	credit, course_database, stu_course);
+
+	classify_course_info(course_database, classify_course);
+	//cout << classify_course.size() << endl;
+	generation_course_classify_info(fs9, classify_course);
+
+	generation_equivalence(fs10, classify_course, course_database);
     
     fs1.close();
     //fs2.close();
@@ -127,6 +139,8 @@ int main(int argc, char** argv) {
 	//fs6.close();
 	//fs7.close();
 	fs8.close();
+	fs9.close();
+	fs10.close();
 	
 	/*cout << find_course(course_database, "08241234") << endl;
 	cout << find_course(course_database, "08241235") << endl;
