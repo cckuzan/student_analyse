@@ -697,7 +697,7 @@ void calculate_learned_credits(vector<student> &database, map<string, graduate_r
 			
 			if (i->exam_type == "¿¼ÊÔ" && i->float_final_score >= 60.0)
 			{
-				credit[i->student_id].gpa_value += (i->float_final_score - 50.0) * i->float_credit;
+				credit[i->student_id].gpa_value += (i->float_final_score - 50.0) * i->float_credit / 10;
 			}
 		}
 	}
