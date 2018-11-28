@@ -7,6 +7,7 @@
 #include <set>
 #include <map>
 #include <sstream>
+#include <io.h>
 
 using namespace std;
 
@@ -109,6 +110,12 @@ public:
 	vector<string> professional_restrict;
 
 	vector<string> other;
+};
+
+class rule_file_info {
+public:
+	string full_path;
+	string file_name;
 };
 
 void record_title(fstream &fs, vector<string> &course_types)
@@ -287,6 +294,8 @@ void parse_rule_by_single_rule(vector<string> &single_rule, graduate_rule &rule)
 	}
 }
 
+//class rule_file_info;
+
 void parse_rule(fstream &fs, graduate_rule &rule)
 {
 	string intemp;
@@ -300,6 +309,27 @@ void parse_rule(fstream &fs, graduate_rule &rule)
 		vector<string> outtemp;
 		parse_single_rule_by_token(intemp, outtemp, ',');
 		parse_rule_by_single_rule(outtemp, rule);
+	}
+}
+//class rule_file_info;
+
+void parse_all_rule(vector<rule_file_info> &file_info, map<string, graduate_rule> &rule)
+{
+	for (auto i = file_info.begin(); i != file_info.end(); ++i)
+	{
+		string file_name = i->file_name.substr(0,i->file_name.find('.'));
+		if (rule.find(file_name) == rule.end())
+		{
+			graduate_rule temp_rule;
+			rule[file_name] = temp_rule;
+		}
+		else
+			return;
+
+		fstream temp_fs;
+		temp_fs.open(i->full_path);
+		parse_rule(temp_fs, rule[file_name]);
+		temp_fs.close();
 	}
 }
 
@@ -546,15 +576,15 @@ void read_origin_student_data(fstream &fs, vector<student> &database)
 	}
 }
 
-void pickup_rule(graduate_rule &rule, vector<student> &database, map<string, graduate_rule> &stu_course, string subject)
+void pickup_rule(map<string, graduate_rule> &rule, vector<student> &database, map<string, graduate_rule> &stu_course)
 {
 	for (auto i = database.begin(); i != database.end(); ++i)
 	{
-		if (i->student_id.substr(0,6) == subject)
+		if (rule.find(i->student_id.substr(0,6)) != rule.end())
 		{
 			if (stu_course.find(i->student_id) == stu_course.end())
 			{
-				stu_course[i->student_id] = rule;
+				stu_course[i->student_id] = rule[i->student_id.substr(0, 6)];
 			}
 		}
 	}
@@ -703,11 +733,11 @@ void calculate_learned_credits(vector<student> &database, map<string, graduate_r
 	}
 }
 
-void get_learned_other_course(graduate_rule &reserve_rule, map<string, vector<string>> &learned_course)
+void get_learned_other_course(map<string, graduate_rule> &reserve_rule, map<string, vector<string>> &learned_course)
 {
 	for (auto i = learned_course.begin(); i != learned_course.end();)
 	{
-		for (auto j = reserve_rule.compulsory.courses.begin(); j != reserve_rule.compulsory.courses.end(); ++j)
+		for (auto j = reserve_rule[i->first].compulsory.courses.begin(); j != reserve_rule[i->first].compulsory.courses.end(); ++j)
 		{
 			auto erase_iter = find(i->second.begin(), i->second.end(), *j);
 			if (erase_iter != i->second.end())
@@ -716,7 +746,7 @@ void get_learned_other_course(graduate_rule &reserve_rule, map<string, vector<st
 			}
 		}
 
-		for (auto j = reserve_rule.elective.begin(); j != reserve_rule.elective.end(); ++j)
+		for (auto j = reserve_rule[i->first].elective.begin(); j != reserve_rule[i->first].elective.end(); ++j)
 		{
 			for (auto k = j->courses.begin(); k != j->courses.end(); ++k)
 			{
@@ -728,7 +758,7 @@ void get_learned_other_course(graduate_rule &reserve_rule, map<string, vector<st
 			}
 		}
 		
-		for (auto j = reserve_rule.equivalence.begin(); j != reserve_rule.equivalence.end(); ++j)
+		for (auto j = reserve_rule[i->first].equivalence.begin(); j != reserve_rule[i->first].equivalence.end(); ++j)
 		{
 			for (auto k = j->courses.begin(); k != j->courses.end(); ++k)
 			{
@@ -1147,4 +1177,48 @@ void generation_equivalence(fstream &fs, map<string, vector<string>> &classify_c
 	//cout << "total_size " << total_size << endl;
 	//cout << "cal_size " << cal_size << endl;
 	//cout << "count " << count << endl;
+}
+
+void getFiles(string path, vector<rule_file_info>& files)
+{
+	//文件句柄  
+	long   hFile = 0;
+	//文件信息  
+	struct _finddata_t fileinfo;
+	string p;
+	if ((hFile = _findfirst(p.assign(path).append("\\*").c_str(), &fileinfo)) != -1)
+	{
+		do
+		{
+			//如果是目录,迭代之  
+			//如果不是,加入列表  
+			if ((fileinfo.attrib &  _A_SUBDIR))
+			{
+				if (strcmp(fileinfo.name, ".") != 0 && strcmp(fileinfo.name, "..") != 0)
+			    getFiles(p.assign(path).append("\\").append(fileinfo.name), files);
+			}
+			else {
+				rule_file_info temp_info;
+				temp_info.full_path = p.assign(path).append("\\").append(fileinfo.name);
+				temp_info.file_name = fileinfo.name;
+				files.push_back(temp_info);
+				//files.push_back(p.assign(path).append("\\").append(fileinfo.name));
+			}
+
+		}while (_findnext(hFile, &fileinfo) == 0);
+		_findclose(hFile);
+	}
+}
+
+void dbg_get_student_major_types(vector<student> &database)
+{
+	set<string> result;
+
+	for (auto i = database.begin(); i != database.end(); ++i)
+	{
+		result.insert(i->student_id.substr(0, 6));
+	}
+
+	for (auto i = result.begin(); i != result.end(); ++i)
+		cout << *i << endl;
 }

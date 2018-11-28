@@ -13,6 +13,8 @@ int main(int argc, char** argv) {
 	
 	map<string, vector<string>> classify_course;
 
+	map<string, graduate_rule> rule;
+
 	fstream fs1;
 	fstream fs2;
 	fstream fs3;
@@ -32,22 +34,35 @@ int main(int argc, char** argv) {
 	get_learned_course_database(database, learned_course);
 	//fs2.open("C://temp//analyse_result_1101.csv");
 	//fs3.open("C://temp//student_total_credit_1101.csv");
-	fs4.open("C://temp//1101_rule.csv");
+	//fs4.open("C://temp//1101_rule.csv");
 	fs5.open("C://temp//graduate_result.csv");
 	//fs6.open("C://temp//course_info.csv");
 	//fs7.open("C://temp//study_info.csv");
 	fs8.open("C://temp//graduate_report.csv");
 	fs9.open("C://temp//classify_course.csv");
 	//fs10.open("C://temp//equivalence_database1.csv");
+	
+	string rule_path = "C:\\temp\\rule";
+	vector<rule_file_info> files;
 
-	graduate_rule rule;
-	parse_rule(fs4, rule);
+	getFiles(rule_path, files);
+
+	//for (auto i = files.begin(); i != files.end(); ++i)
+		//cout << i->full_path << "   "<< i->file_name << endl;
+
+
+	//graduate_rule rule;
+	//parse_rule(fs4, rule);
+	//parse_rule(fs4, files, rule);
+	//dbg_get_student_major_types(database);
+	parse_all_rule(files, rule);
+
 
 	map<string, graduate_rule> stu_course;
 	//cout << rule.compulsory.credit << endl;
 	
-	pickup_rule(rule, database, stu_course, "201101");
-	graduate_rule reserve_rule = rule;
+ 	pickup_rule(rule, database, stu_course);
+	auto reserve_rule = rule;
 
 	vector<string> course_types;
 	course_types.push_back("Ñ§ºÅ");
