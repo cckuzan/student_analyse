@@ -933,68 +933,70 @@ void generation_graduate_info(fstream &fs, map<string, course_list> &study_info,
 	map<string, credit_calculate> &credit, map<string, course_info> &course_database, map<string, graduate_rule> &stu_course)
 {
 	fs << "学号" << "," << "课程类别" << "," << "学分" << "," << "课程列表" << endl;
-	for (auto i = study_info.begin(); i != study_info.end(); ++i)
+	for (auto i = stu_course.begin(); i != stu_course.end(); ++i)
 	{
+		if (i->first.substr(0, 6) == "201101")
+		{
 		fs << i->first << ","; fs << "总学分:," << credit[i->first].student_total_credit << endl;
 
 		fs << "," << "必修课," << credit[i->first].required_course_credit;
-		for (auto j = i->second.require_select.begin(); j != i->second.require_select.end(); ++j)
+		for (auto j = study_info[i->first].require_select.begin(); j != study_info[i->first].require_select.end(); ++j)
 		{
 			fs << "," << *j;
 		}
 		fs << endl;
 
 		fs << "," << "任选课," << credit[i->first].free_course_credit;
-		for (auto j = i->second.free_select.begin(); j != i->second.free_select.end(); ++j)
+		for (auto j = study_info[i->first].free_select.begin(); j != study_info[i->first].free_select.end(); ++j)
 		{
 			fs << "," << *j;
 		}
 		fs << endl;
 
 		fs << "," << "通识必修（改）," << credit[i->first].general_required_course_credit;
-		for (auto j = i->second.general_require.begin(); j != i->second.general_require.end(); ++j)
+		for (auto j = study_info[i->first].general_require.begin(); j != study_info[i->first].general_require.end(); ++j)
 		{
 			fs << "," << *j;
 		}
 		fs << endl;
 
 		fs << "," << "学科基础（改）," << credit[i->first].basic_course;
-		for (auto j = i->second.subject_basic.begin(); j != i->second.subject_basic.end(); ++j)
+		for (auto j = study_info[i->first].subject_basic.begin(); j != study_info[i->first].subject_basic.end(); ++j)
 		{
 			fs << "," << *j;
 		}
 		fs << endl;
 
 		fs << "," << "专业核心（改）," << credit[i->first].professional_course;
-		for (auto j = i->second.professional_core.begin(); j != i->second.professional_core.end(); ++j)
+		for (auto j = study_info[i->first].professional_core.begin(); j != study_info[i->first].professional_core.end(); ++j)
 		{
 			fs << "," << *j;
 		}
 		fs << endl;
 
 		fs << "," << "限选课," << credit[i->first].restrict_course;
-		for (auto j = i->second.restrict_select.begin(); j != i->second.restrict_select.end(); ++j)
+		for (auto j = study_info[i->first].restrict_select.begin(); j != study_info[i->first].restrict_select.end(); ++j)
 		{
 			fs << "," << *j;
 		}
 		fs << endl;
 
 		fs << "," << "通识限选（改）," << credit[i->first].general_restrict_credit;
-		for (auto j = i->second.general_restrict.begin(); j != i->second.general_restrict.end(); ++j)
+		for (auto j = study_info[i->first].general_restrict.begin(); j != study_info[i->first].general_restrict.end(); ++j)
 		{
 			fs << "," << *j;
 		}
 		fs << endl;
 
 		fs << "," << "专业限选（改）," << credit[i->first].professional_restrict_credit;
-		for (auto j = i->second.professional_restrict.begin(); j != i->second.professional_restrict.end(); ++j)
+		for (auto j = study_info[i->first].professional_restrict.begin(); j != study_info[i->first].professional_restrict.end(); ++j)
 		{
 			fs << "," << *j;
 		}
 		fs << endl;
 
 		fs << "," << "其他," << credit[i->first].other_credit;
-		for (auto j = i->second.other.begin(); j != i->second.other.end(); ++j)
+		for (auto j = study_info[i->first].other.begin(); j != study_info[i->first].other.end(); ++j)
 		{
 			fs << "," << *j;
 		}
@@ -1067,6 +1069,7 @@ void generation_graduate_info(fstream &fs, map<string, course_list> &study_info,
 			fs << endl;
 		}
 	}
+	}
 }
  
 int levenshtein(string str1,string str2)
@@ -1114,6 +1117,72 @@ void classify_course_info(map<string, course_info> &course_database, map<string,
 		auto i = temp_course_database.begin();
 		//auto index = ++i;
 		
+		if (classify_course.find(i->second.course_name) == classify_course.end())
+		{
+			vector<string> temp_course_list;
+			temp_course_list.push_back(i->first);
+			classify_course[i->second.course_name] = temp_course_list;
+			//i = temp_course_database.erase(i);
+		}
+
+		auto temp_iter = i;
+		for (auto index = ++temp_iter; index != temp_course_database.end();)
+		{
+			if (levenshtein(i->second.course_name, index->second.course_name) < 3)
+			{
+				classify_course[i->second.course_name].push_back(index->first);
+				index = temp_course_database.erase(index);
+			}
+			else {
+				++index;
+			}
+		}
+
+		temp_course_database.erase(temp_course_database.begin());
+	}
+}
+
+
+void classify_course_art_info(map<string, course_info> &course_database, map<string, vector<string>> &classify_course, string &type)
+{
+	map<string, course_info> temp_course_database = course_database;
+	//cout << "course_database_size " << temp_course_database.size() << endl;
+	vector<string> art_prefix;
+	if (type == "书法")
+	{
+		art_prefix.push_back("书法");
+	}
+	/*art_prefix.push_back("艺术");
+	art_prefix.push_back("鉴赏");
+	art_prefix.push_back("戏曲");
+	art_prefix.push_back("书法");
+	art_prefix.push_back("戏剧");
+	art_prefix.push_back("音乐");
+	art_prefix.push_back("美术");
+	art_prefix.push_back("影视");
+	art_prefix.push_back("文艺");
+	art_prefix.push_back("舞蹈");*/
+	for (; !temp_course_database.empty();)
+	{
+		auto i = temp_course_database.begin();
+		//auto index = ++i;
+		
+		bool is_art = false;
+		for (auto i_art = art_prefix.begin(); i_art != art_prefix.end(); ++i_art)
+		{
+			if (i->second.course_name.find(*i_art) != std::string::npos)
+			{
+				is_art = true;
+				break;
+			}
+		}
+
+		if (!is_art)
+		{
+			temp_course_database.erase(temp_course_database.begin());
+			continue;
+		}
+
 		if (classify_course.find(i->second.course_name) == classify_course.end())
 		{
 			vector<string> temp_course_list;

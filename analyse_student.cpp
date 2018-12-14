@@ -39,8 +39,8 @@ int main(int argc, char** argv) {
 	//fs6.open("C://temp//course_info.csv");
 	//fs7.open("C://temp//study_info.csv");
 	fs8.open("C://temp//graduate_report.csv");
-	fs9.open("C://temp//classify_course.csv");
-	//fs10.open("C://temp//equivalence_database1.csv");
+	fs9.open("C://temp//classify_course_calligraphy.csv");
+	fs10.open("C://temp//equivalence_database_calligraphy.csv");
 	
 	string rule_path = "C:\\temp\\rule";
 	vector<rule_file_info> files;
@@ -140,9 +140,15 @@ int main(int argc, char** argv) {
 	generation_graduate_info(fs8, study_info,learned_course,
 	credit, course_database, stu_course);
 
-	classify_course_info(course_database, classify_course);
+	//classify_course_info(course_database, classify_course);  //total course
 	//cout << classify_course.size() << endl;
+	classify_course_art_info(course_database, classify_course, string("Êé·¨"));
+
 	generation_course_classify_info(fs9, classify_course);
+
+	//generation_course_classify_art_info(fs9, classify_course);
+
+	//generation_course_classify_info_calligraphy(fs9, classify_course);
 
 	generation_equivalence(fs10, classify_course, course_database);
     
