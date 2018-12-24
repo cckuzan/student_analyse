@@ -1152,6 +1152,56 @@ void classify_course_art_info(map<string, course_info> &course_database, map<str
 	{
 		art_prefix.push_back("书法");
 	}
+
+	if (type == "戏曲")
+	{
+		art_prefix.push_back("戏曲");
+	}
+
+	if (type == "戏剧")
+	{
+		art_prefix.push_back("戏剧");
+	}
+
+	if (type == "舞蹈")
+	{
+		art_prefix.push_back("舞蹈形体");
+		art_prefix.push_back("舞蹈鉴赏");
+	}
+
+	if (type == "影视")
+	{
+		art_prefix.push_back("影视鉴赏");
+		art_prefix.push_back("电影与幸福感");
+		art_prefix.push_back("英语电影视听说");
+		art_prefix.push_back("影视服装设计");
+		art_prefix.push_back("影视戏剧服装鉴赏");
+		art_prefix.push_back("中外法律电影赏析");
+	}
+
+	if (type == "美术")
+	{
+		art_prefix.push_back("美术鉴赏");
+	}
+
+	if (type == "音乐")
+	{
+		art_prefix.push_back("欧美流行音乐与信息技术");
+		art_prefix.push_back("欧洲音乐简史");
+		art_prefix.push_back("西方音乐魅力赏析");
+		art_prefix.push_back("信息技术下的欧美音乐工业");
+		art_prefix.push_back("音乐鉴赏");
+		art_prefix.push_back("中国民族音乐");
+	}
+
+	if (type == "艺术")
+	{
+		art_prefix.push_back("古代艺术品鉴赏");
+		art_prefix.push_back("艺术导论");
+		art_prefix.push_back("中国绘画艺术解读");
+		art_prefix.push_back("中国绘画艺术赏析");
+	}
+
 	/*art_prefix.push_back("艺术");
 	art_prefix.push_back("鉴赏");
 	art_prefix.push_back("戏曲");
@@ -1219,6 +1269,37 @@ void generation_course_classify_info(fstream &fs, map<string, vector<string>> &c
 		}
 		fs << endl;
 	}
+}
+
+void generation_equivalence_art_info(fstream &fs, map<string, vector<string>> &classify_course, map<string, course_info> &course_database)
+{
+	if (classify_course.empty())
+		return;
+
+	string main_id;
+	auto itr = classify_course.begin();
+	main_id = itr->second[0];
+	auto main_credit = course_database[main_id].credit;
+
+	for (auto i = classify_course.begin(); i != classify_course.end(); ++i)
+	{
+		if (i->second.size() > 1)
+		{
+			for (auto j = i->second.begin(); j != i->second.end(); ++j)
+			{
+				if (*j == main_id)
+					continue;
+
+				fs << "equivalence" << ",";
+				fs << main_credit << ",";
+				fs << main_id << ",";
+				fs << *j << endl;
+			}
+		}
+	}
+	//cout << "total_size " << total_size << endl;
+	//cout << "cal_size " << cal_size << endl;
+	//cout << "count " << count << endl;
 }
 
 void generation_equivalence(fstream &fs, map<string, vector<string>> &classify_course, map<string, course_info> &course_database)
