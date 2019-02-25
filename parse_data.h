@@ -1372,3 +1372,118 @@ void dbg_get_student_major_types(vector<student> &database)
 	for (auto i = result.begin(); i != result.end(); ++i)
 		cout << *i << endl;
 }
+
+class pass_or_not
+{
+public:
+	vector<string> pass;
+	vector<string> nopass;
+};
+
+vector<string> swe_course;
+void init_swe_course()
+{
+	if (!swe_course.empty())
+		return;
+
+	swe_course.push_back("05241135");
+	swe_course.push_back("05251125");
+	swe_course.push_back("05251129");
+	swe_course.push_back("06221024");
+	swe_course.push_back("06231199");
+	swe_course.push_back("06231241");
+	swe_course.push_back("08211003");
+	swe_course.push_back("08211008");
+	swe_course.push_back("08211105");
+	swe_course.push_back("08211111");
+	swe_course.push_back("08211134");
+	swe_course.push_back("08212035");
+	swe_course.push_back("08241007");
+	swe_course.push_back("08241038");
+	swe_course.push_back("08241047");
+	swe_course.push_back("08241048");
+	swe_course.push_back("08241055");
+	swe_course.push_back("08241056");
+	swe_course.push_back("08241057");
+	swe_course.push_back("08241087");
+	swe_course.push_back("08241111");
+	swe_course.push_back("08241152");
+	swe_course.push_back("08241173");
+	swe_course.push_back("08241200");
+	swe_course.push_back("08241225");
+	swe_course.push_back("08241238");
+	swe_course.push_back("08241246");
+	swe_course.push_back("08241249");
+	swe_course.push_back("08241301");
+	swe_course.push_back("08241434");
+	swe_course.push_back("08251081");
+	swe_course.push_back("08251082");
+	swe_course.push_back("08251083");
+	swe_course.push_back("08251084");
+	swe_course.push_back("08261003");
+	swe_course.push_back("08261080");
+	swe_course.push_back("08271315");
+	swe_course.push_back("08281011");
+	swe_course.push_back("08291002");
+	swe_course.push_back("08291005");
+	swe_course.push_back("08291015");
+	swe_course.push_back("08291035");
+	swe_course.push_back("08291039");
+	swe_course.push_back("08291063");
+}
+
+bool filter_swe_course(string course)
+{
+	init_swe_course();
+	for (auto i = swe_course.begin(); i != swe_course.end(); ++i)
+	{
+		if (*i == course)
+			return true;
+	}
+	return false;
+}
+
+
+void generation_swe_result(fstream &fs, vector<student> &database)
+{
+	map<string, pass_or_not> study_info;
+	for (auto i = database.begin(); i != database.end(); ++i)
+	{
+		if (i->student_id.substr(4, 2) == "02")
+		{
+			if (study_info.find(i->student_id) == study_info.end())
+			{
+				pass_or_not temp_pass;
+				study_info[i->student_id] = temp_pass;
+			}
+
+			if (!filter_swe_course(i->course))
+				continue;
+
+			if (i->float_final_score - 59.9999 > 0.0000000001)
+			{
+				study_info[i->student_id].pass.push_back(i->course);
+			} else
+				study_info[i->student_id].nopass.push_back(i->course);
+		}
+	}
+
+	for (auto i = study_info.begin(); i != study_info.end(); ++i)
+	{
+		fs << i->first << endl;
+		fs << "pass";
+		for (auto j = i->second.pass.begin(); j != i->second.pass.end(); ++j)
+		{
+			fs << "," << *j;
+		}
+
+		fs << endl;
+		fs << "nopass";
+
+		for (auto j = i->second.nopass.begin(); j != i->second.nopass.end(); ++j)
+		{
+			fs << "," << *j;
+		}
+		fs << endl;
+	}
+}

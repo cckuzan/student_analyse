@@ -25,6 +25,7 @@ int main(int argc, char** argv) {
 	fstream fs8;
 	fstream fs9;
 	fstream fs10;
+	fstream fs11;   //  write swe
 
 	fs1.open("C://temp//total_record.csv");
 	vector<student> database;
@@ -35,12 +36,13 @@ int main(int argc, char** argv) {
 	//fs2.open("C://temp//analyse_result_1101.csv");
 	//fs3.open("C://temp//student_total_credit_1101.csv");
 	//fs4.open("C://temp//1101_rule.csv");
-	fs5.open("C://temp//graduate_result.csv");
+	//fs5.open("C://temp//graduate_result.csv");
 	//fs6.open("C://temp//course_info.csv");
 	//fs7.open("C://temp//study_info.csv");
-	fs8.open("C://temp//graduate_report.csv");
-	fs9.open("C://temp//classify_course_art.csv");
-	fs10.open("C://temp//equivalence_database_art.csv");
+	//fs8.open("C://temp//graduate_report.csv");
+	//fs9.open("C://temp//classify_course_art.csv");
+	//fs10.open("C://temp//equivalence_database_art.csv");
+	fs11.open("C://temp//swe_course.csv");
 	
 	string rule_path = "C:\\temp\\rule";
 	vector<rule_file_info> files;
@@ -142,7 +144,7 @@ int main(int argc, char** argv) {
 
 	//classify_course_info(course_database, classify_course);  //total course
 	//cout << classify_course.size() << endl;
-	classify_course_art_info(course_database, classify_course, string("艺术"));
+	//classify_course_art_info(course_database, classify_course, string("艺术"));
 
 	generation_course_classify_info(fs9, classify_course);
 
@@ -153,6 +155,8 @@ int main(int argc, char** argv) {
 	generation_equivalence_art_info(fs10, classify_course, course_database);
 
 	//generation_equivalence(fs10, classify_course, course_database);
+
+	generation_swe_result(fs11, database);
     
     fs1.close();
     //fs2.close();
@@ -164,6 +168,8 @@ int main(int argc, char** argv) {
 	fs8.close();
 	fs9.close();
 	fs10.close();
+	//fs11 << "last" << endl;
+	fs11.close();
 	
 	/*cout << find_course(course_database, "08241234") << endl;
 	cout << find_course(course_database, "08241235") << endl;
