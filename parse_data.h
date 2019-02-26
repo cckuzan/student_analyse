@@ -1470,19 +1470,22 @@ void generation_swe_result(fstream &fs, vector<student> &database)
 
 	for (auto i = study_info.begin(); i != study_info.end(); ++i)
 	{
-		fs << i->first << endl;
-		fs << "pass";
+		//fs << i->first << endl;
+
 		for (auto j = i->second.pass.begin(); j != i->second.pass.end(); ++j)
 		{
-			fs << "," << *j;
+			fs << *j << "P";
+			if (j != i->second.pass.end() - 1)
+				fs << ",";
 		}
 
-		fs << endl;
-		fs << "nopass";
-
+		if (!i->second.nopass.empty())
+			fs << ",";
 		for (auto j = i->second.nopass.begin(); j != i->second.nopass.end(); ++j)
 		{
-			fs << "," << *j;
+			fs << *j << "N";
+			if (j != i->second.nopass.end() - 1)
+				fs << ",";
 		}
 		fs << endl;
 	}
